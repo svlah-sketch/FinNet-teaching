@@ -9,19 +9,19 @@ Nastavni materijali razvijeni iz istraživačkog projekta
 ## Sadržaj
 
 ```
-teaching/
-  notebooks/
-    01_mreze_i_podaci.ipynb      — Korelacijske matrice, P-prag mreže, mrežne mjere
-    02_detekcija_kriza.ipynb     — Statistički testovi, detekcija kriza, logistička regresija
-    03_prognoziranje.ipynb       — Out-of-sample prognoziranje, GARCH, OLS, DM test
-  sample_data/
-    sample_metrics_W90.csv       — 10 mrežnih mjera, 59 90-dnevnih prozora (2005–2026)
-    sample_metrics_revision.csv  — 10 mjera, 43 revizijska prozora CROBEX-a
-    CROBEX_values.csv            — Dnevne razine CROBEX indeksa
-    Revisions.csv                — Datumi revizia CROBEX sastava
-  student_projects/
-    README_projekti.md           — 3 studentska mini-projekta
-  requirements.txt
+notebooks/
+  00_uvod_i_metodologija.ipynb  — Kontekst, P-prag mreže, ilustrativni primjer, literatura
+  01_mreze_i_podaci.ipynb       — Korelacijske matrice, P-prag mreže, mrežne mjere
+  02_detekcija_kriza.ipynb      — Statistički testovi, detekcija kriza, logistička regresija
+  03_prognoziranje.ipynb        — Out-of-sample prognoziranje, GARCH, OLS, DM test
+sample_data/
+  sample_metrics_W90.csv        — 10 mrežnih mjera, 59 90-dnevnih prozora (2005–2026)
+  sample_metrics_revision.csv   — 10 mjera, 43 revizijska prozora CROBEX-a
+  CROBEX_values.csv             — Dnevne razine CROBEX indeksa
+  Revisions.csv                 — Datumi revizia CROBEX sastava
+student_projects/
+  README_projekti.md            — 3 studentska mini-projekta
+requirements.txt
 ```
 
 ## Otvaranje u Google Colabu
@@ -30,10 +30,10 @@ Klikni na gumb za željeni notebook — otvara se odmah u Colabu, bez ikakve ins
 
 | Notebook | Otvori u Colabu |
 |----------|----------------|
-| 00 — Uvod i metodologija | [![Open in Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/svlah-sketch/FinNet/blob/teaching/teaching/notebooks/00_uvod_i_metodologija.ipynb) |
-| 01 — Mreže i podaci | [![Open in Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/svlah-sketch/FinNet/blob/teaching/teaching/notebooks/01_mreze_i_podaci.ipynb) |
-| 02 — Detekcija kriza | [![Open in Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/svlah-sketch/FinNet/blob/teaching/teaching/notebooks/02_detekcija_kriza.ipynb) |
-| 03 — Prognoziranje | [![Open in Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/svlah-sketch/FinNet/blob/teaching/teaching/notebooks/03_prognoziranje.ipynb) |
+| 00 — Uvod i metodologija | [![Open in Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/svlah-sketch/FinNet-teaching/blob/main/notebooks/00_uvod_i_metodologija.ipynb) |
+| 01 — Mreže i podaci | [![Open in Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/svlah-sketch/FinNet-teaching/blob/main/notebooks/01_mreze_i_podaci.ipynb) |
+| 02 — Detekcija kriza | [![Open in Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/svlah-sketch/FinNet-teaching/blob/main/notebooks/02_detekcija_kriza.ipynb) |
+| 03 — Prognoziranje | [![Open in Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/svlah-sketch/FinNet-teaching/blob/main/notebooks/03_prognoziranje.ipynb) |
 
 > Prva ćelija svakog notebooka automatski klonira potrebne podatke — samo pokrenite sve ćelije redom.
 
