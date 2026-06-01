@@ -7,7 +7,7 @@ Run from the project root: python teaching/make_notebooks.py
 import json
 from pathlib import Path
 
-OUT = Path("teaching/notebooks")
+OUT = Path("notebooks")
 OUT.mkdir(parents=True, exist_ok=True)
 
 
@@ -385,7 +385,7 @@ from pathlib import Path
 
 DATA_DIR = Path("../sample_data")
 
-# CROBEX dnevni log-povrati
+# CROBEX dnevni log-prinosi
 crobex_raw = pd.read_csv(DATA_DIR / "CROBEX_values.csv", sep=";", encoding="cp1250")
 crobex_raw["date"]   = pd.to_datetime(crobex_raw["date"], dayfirst=True)
 crobex_raw["crobex"] = pd.to_numeric(crobex_raw["crobex"], errors="coerce")
@@ -400,7 +400,7 @@ revs = revs[(revs["rev_cnt"] >= 10) & (revs["rev_cnt"] <= 52)].reset_index(drop=
 metrics = pd.read_csv(DATA_DIR / "sample_metrics_revision.csv",
                       index_col="window_end", parse_dates=True)
 
-print(f"CROBEX: {len(crobex_ret)} dnevnih povrata")
+print(f"CROBEX: {len(crobex_ret)} dnevnih prinosa")
 print(f"Revizijskih prozora: {len(revs)}")"""),
 
     md("""## 1. Realizirana volatilnost po prozoru

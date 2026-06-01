@@ -220,9 +220,9 @@ cells = [
        '| Koje su dionice hub sistemskog rizika? | Eigenvector centralnost |\n'
        '| Koliko je rizik koncentriran? | Apsorcijski omjer |\n\n'
        '**Literatura:** Mantegna (1999); Billio et al. (2012) - vidi Sekciju 7.\n'),
-    md('## 2. Metodoloski pipeline: od povrata do mreze\n\n'
+    md('## 2. Metodoloski pipeline: od prinosa do mreze\n\n'
        '**Ovo je kljucna sekcija.**\n\n'
-       '### Korak 1: Dnevni log-povrati\n\n'
+       '### Korak 1: Dnevni log-prinosi\n\n'
        '$$r_{it} = \\log\\left(\\frac{P_{it}}{P_{i,t-1}}\\right)$$\n\n'
        '### Korak 2: EW-LOO trzisni faktor\n\n'
        'Za svaku dionicu $i$ posebno - jednako-ponderirani prosjek svih **ostalih** dionica:\n\n'
