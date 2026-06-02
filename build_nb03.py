@@ -1,0 +1,263 @@
+"""Build notebook 03 - redesigned to match actual research methodology."""
+import json
+from pathlib import Path
+
+OUT = Path("notebooks")
+OUT.mkdir(parents=True, exist_ok=True)
+
+def nb(cells):
+    return {"nbformat":4,"nbformat_minor":5,
+            "metadata":{"kernelspec":{"display_name":"Python 3","language":"python","name":"python3"},
+                        "language_info":{"name":"python","version":"3.11.0"}},
+            "cells":cells}
+
+def md(src): return {"cell_type":"markdown","metadata":{},"source":src.splitlines(keepends=True)}
+def code(src): return {"cell_type":"code","metadata":{},"source":src.splitlines(keepends=True),"outputs":[],"execution_count":None}
+
+COLAB = code(
+    '# Postavljanje okolisa (automatski detektira Google Colab)\n'
+    'import sys\n'
+    'if "google.colab" in sys.modules:\n'
+    '    import urllib.request, os\n'
+    '    os.makedirs("/content/sample_data", exist_ok=True)\n'
+    '    _base = "https://raw.githubusercontent.com/svlah-sketch/FinNet-teaching/main/sample_data/"\n'
+    '    for _f in ["sample_metrics_W90.csv", "sample_metrics_revision.csv",\n'
+    '               "CROBEX_values.csv", "Revisions.csv"]:\n'
+    '        urllib.request.urlretrieve(_base + _f, f"/content/sample_data/{_f}")\n'
+    '    print("Colab: podaci preuzeti s GitHuba.")\n'
+    'else:\n'
+    '    print("Lokalno pokretanje.")'
+)
+
+LOAD = (
+    'import pandas as pd\n'
+    'import numpy as np\n'
+    'import matplotlib.pyplot as plt\n'
+    'import matplotlib.dates as mdates\n'
+    'from scipy import stats\n'
+    'from pathlib import Path\n'
+    '\n'
+    '# Automatski pronalazi sample_data/ (Colab ili lokalno)\n'
+    'import sys\n'
+    'if "google.colab" in sys.modules:\n'
+    '    DATA_DIR = Path("/content/sample_data")\n'
+    'else:\n'
+    '    for _p in [Path("../sample_data"), Path("sample_data")]:\n'
+    '        if _p.exists() and list(_p.glob("*.csv")):\n'
+    '            DATA_DIR = _p\n'
+    '            break\n'
+    '    else:\n'
+    '        raise FileNotFoundError("sample_data/ nije pronaden. Pokreni prvu celiju notebooka.")\n'
+    'print(f"DATA_DIR: {DATA_DIR.resolve()}")\n'
+    '\n'
+    '# Ucitaj CROBEX dnevne log-prinose\n'
+    'crobex = pd.read_csv(DATA_DIR / "CROBEX_values.csv", sep=";", encoding="cp1250")\n'
+    'crobex["date"] = pd.to_datetime(crobex["date"], dayfirst=True)\n'
+    'crobex["crobex"] = pd.to_numeric(crobex["crobex"], errors="coerce")\n'
+    'crobex_ret = np.log(crobex.sort_values("date").set_index("date")["crobex"]).diff().dropna()\n'
+    '\n'
+    '# Ucitaj revizijske prozore\n'
+    'revs = pd.read_csv(DATA_DIR / "Revisions.csv", sep=";", encoding="cp1250")\n'
+    'revs["start_date"] = pd.to_datetime(revs["start_date"], dayfirst=True)\n'
+    'revs["end_date"]   = pd.to_datetime(revs["end_date"],   dayfirst=True)\n'
+    'revs = revs[(revs["rev_cnt"] >= 10) & (revs["rev_cnt"] <= 52)].reset_index(drop=True)\n'
+    '\n'
+    '# Ucitaj mrezne mjere (revizijski prozori)\n'
+    'metrics = pd.read_csv(DATA_DIR / "sample_metrics_revision.csv",\n'
+    '                      index_col="window_end", parse_dates=True)\n'
+    '\n'
+    'print(f"CROBEX: {len(crobex_ret)} dnevnih prinosa")\n'
+    'print(f"Revizijskih prozora: {len(revs)}")\n'
+    'print(f"Mreznih mjera: {metrics.shape}")\n'
+)
+
+VOL_NEXT = (
+    '# Izracunaj realiziranu volatilnost po prozoru\n'
+    'rows = []\n'
+    'for _, row in revs.iterrows():\n'
+    '    r = crobex_ret.loc[row["start_date"]:row["end_date"]].dropna()\n'
+    '    vol = float(r.std(ddof=1) * np.sqrt(252)) if len(r) >= 10 else np.nan\n'
+    '    diffs = (metrics.index - row["end_date"]).to_series().abs()\n'
+    '    best  = int(diffs.values.argmin())\n'
+    '    met_row = metrics.iloc[best] if diffs.iloc[best].days <= 5 else pd.Series(dtype=float)\n'
+    '    entry = {"end_date": row["end_date"], "vol": vol}\n'
+    '    for col in metrics.columns:\n'
+    '        entry[col] = float(met_row[col]) if col in met_row.index else np.nan\n'
+    '    rows.append(entry)\n'
+    '\n'
+    'df = pd.DataFrame(rows)\n'
+    'df["vol_next"] = df["vol"].shift(-1)  # volatilnost SLJEDECEG prozora\n'
+    'df = df.iloc[:-1].copy()              # izbaci zadnji (nema vol_next)\n'
+    '\n'
+    'print(f"Prozora za analizu: {df["vol_next"].notna().sum()}")\n'
+    'print(df[["end_date","vol","vol_next","M1_LCC","M4_NCom"]].head(6).to_string(index=False))\n'
+)
+
+SPEARMAN = (
+    '# Spearmanov ro za svaku mjeru vs. sljedeca volatilnost\n'
+    'results = []\n'
+    'for col in metrics.columns:\n'
+    '    x = df[col].values\n'
+    '    y = df["vol_next"].values\n'
+    '    mask = ~np.isnan(x) & ~np.isnan(y)\n'
+    '    n = mask.sum()\n'
+    '    if n < 5:\n'
+    '        continue\n'
+    '    rho, pval = stats.spearmanr(x[mask], y[mask])\n'
+    '    results.append({"mjera": col, "n": n, "rho": round(rho,3), "p": round(pval,4),\n'
+    '                    "sig": "**" if pval<0.01 else ("*" if pval<0.05 else\n'
+    '                           ("." if pval<0.10 else ""))})\n'
+    '\n'
+    'res = pd.DataFrame(results).sort_values("rho", key=abs, ascending=False)\n'
+    'print("Spearmanov ro: mrezne mjere vs. buduća volatilnost (revizijski prozori)")\n'
+    'print(res[["mjera","n","rho","p","sig"]].to_string(index=False))\n'
+    'print()\n'
+    'print("** p<0.01  * p<0.05  . p<0.10")\n'
+    'print()\n'
+    'print("Napomena: M4, M8 imaju mali n jer su dostupne samo u stresnim periodima")\n'
+    'print("(NG-0.001 neprazna). To je kondicionalna statistika.")\n'
+)
+
+SCATTER = (
+    '# Scatter plotovi: 4 kljucne mjere vs. sljedeca volatilnost\n'
+    'CRISES = {\n'
+    '    "GFC":     ("2007-10-01", "2009-09-30"),\n'
+    '    "EU_DEBT": ("2011-04-01", "2012-09-30"),\n'
+    '    "COVID":   ("2020-02-20", "2021-03-31"),\n'
+    '}\n'
+    '\n'
+    'def is_crisis(date):\n'
+    '    for s, e in CRISES.values():\n'
+    '        if pd.Timestamp(s) <= date <= pd.Timestamp(e):\n'
+    '            return True\n'
+    '    return False\n'
+    '\n'
+    'df["kriza"] = df["end_date"].map(is_crisis)\n'
+    '\n'
+    'PLOT_COLS = ["M1_LCC", "M3_MeanDeg", "M4_NCom", "M6_AbsRat"]\n'
+    'fig, axes = plt.subplots(2, 2, figsize=(13, 10))\n'
+    '\n'
+    'for ax, col in zip(axes.flat, PLOT_COLS):\n'
+    '    mask = df[col].notna() & df["vol_next"].notna()\n'
+    '    x_c = df.loc[mask & df["kriza"],  col]\n'
+    '    y_c = df.loc[mask & df["kriza"],  "vol_next"]\n'
+    '    x_t = df.loc[mask & ~df["kriza"], col]\n'
+    '    y_t = df.loc[mask & ~df["kriza"], "vol_next"]\n'
+    '    ax.scatter(x_t, y_t, color="steelblue", alpha=0.7, s=50, label="Mirno")\n'
+    '    ax.scatter(x_c, y_c, color="crimson",   alpha=0.8, s=70, label="Kriza")\n'
+    '    rho, p = stats.spearmanr(df.loc[mask, col], df.loc[mask, "vol_next"])\n'
+    '    n = mask.sum()\n'
+    '    ax.set_xlabel(col, fontsize=9)\n'
+    '    ax.set_ylabel("Buduća vol. (anualizirana)", fontsize=9)\n'
+    '    ax.set_title(f"{col}\\nSpearman rho={rho:+.3f}, p={p:.3f}, n={n}", fontsize=10)\n'
+    '    ax.legend(fontsize=8)\n'
+    '    ax.grid(alpha=0.3)\n'
+    '\n'
+    'fig.suptitle("Mrezne mjere vs. buduća volatilnost\\n"\n'
+    '             "(crveno = krizni prozor, plavo = mirni prozor)", fontsize=12)\n'
+    'plt.tight_layout()\n'
+    'plt.savefig("nb03_scatter.png", dpi=120, bbox_inches="tight")\n'
+    'plt.show()\n'
+)
+
+COND = (
+    '# Kondicionalna analiza: M4 u svim vs. samo stresnim prozorima\n'
+    '# M4 (broj zajednica u NG-0.001) aktivan samo kad je mreza pod stresom\n'
+    '\n'
+    'mask_all    = df["M4_NCom"].notna() & df["vol_next"].notna()\n'
+    'mask_crisis = mask_all & df["kriza"]\n'
+    'mask_tran   = mask_all & ~df["kriza"]\n'
+    '\n'
+    'def rho_n(x, y):\n'
+    '    r, p = stats.spearmanr(x, y)\n'
+    '    return r, p, len(x)\n'
+    '\n'
+    'r_all,  p_all,  n_all  = rho_n(df.loc[mask_all,    "M4_NCom"], df.loc[mask_all,    "vol_next"])\n'
+    'r_cris, p_cris, n_cris = rho_n(df.loc[mask_crisis, "M4_NCom"], df.loc[mask_crisis, "vol_next"])\n'
+    'r_tran, p_tran, n_tran = rho_n(df.loc[mask_tran,   "M4_NCom"], df.loc[mask_tran,   "vol_next"]) if mask_tran.sum()>=3 else (np.nan, np.nan, 0)\n'
+    '\n'
+    'print("M4 (broj zajednica u NG-0.001) — kondicionalna analiza:")\n'
+    'print(f"  Svi stresni prozori:  rho={r_all:+.3f}  p={p_all:.4f}  n={n_all}")\n'
+    'print(f"  Samo krizni:          rho={r_cris:+.3f}  p={p_cris:.4f}  n={n_cris}")\n'
+    'print(f"  Samo mirni (stres):   rho={r_tran:+.3f}  p={p_tran:.4f}  n={n_tran}")\n'
+    'print()\n'
+    '\n'
+    '# Vizualizacija: scatter M4 vs vol_next, bojano po krizi\n'
+    'fig, ax = plt.subplots(figsize=(8, 5))\n'
+    'for label, mask_s, color in [\n'
+    '    ("Stresno + krizno", mask_crisis, "crimson"),\n'
+    '    ("Stresno + mirno",  mask_tran,   "steelblue"),\n'
+    ']:\n'
+    '    if mask_s.sum() > 0:\n'
+    '        ax.scatter(df.loc[mask_s, "M4_NCom"], df.loc[mask_s, "vol_next"],\n'
+    '                   label=f"{label} (n={mask_s.sum()})", color=color, s=70, alpha=0.8)\n'
+    '\n'
+    'ax.set_xlabel("M4: Broj zajednica (NG-0.001, kondicionalno)", fontsize=10)\n'
+    'ax.set_ylabel("Buduća volatilnost (anualizirana)", fontsize=10)\n'
+    'ax.set_title(f"M4 vs. buduća vol.\\n"\n'
+    '             f"Svi stresni: rho={r_all:+.3f} (p={p_all:.3f}, n={n_all})", fontsize=11)\n'
+    'ax.legend()\n'
+    'ax.grid(alpha=0.3)\n'
+    'plt.tight_layout()\n'
+    'plt.savefig("nb03_m4_cond.png", dpi=120, bbox_inches="tight")\n'
+    'plt.show()\n'
+    '\n'
+    'print("Zakljucak: M4 je visoko koreliran s buducom volatilnoscu u stresnim periodima.")\n'
+    'print("U mirnim periodima NG-0.001 mreza je prazna -> M4 = NaN -> nije dostupno.")\n'
+    'print("Ovo je kondicionalna, ne bezuvjetna statistika.")\n'
+)
+
+cells_03 = [
+    md('# Notebook 03: Mrezne mjere kao prediktori volatilnosti\n\n'
+       '**Projekt:** Financijske mreze na ZSE (CROBEX, 2004-2026)\n'
+       '**Teme:** Spearmanov rho, kondicionalna analiza, scatter plotovi, prediktivnost\n'
+       '**Kolegiji:** Strojno ucenje u financijama, Financijsko modeliranje\n\n'
+       '## Kontekst\n\n'
+       'Pitanje: **mogu li mrezne mjere predvidjeti volatilnost trzista u sljedecem periodu?**\n\n'
+       'Koristimo **Spearmanov koeficijent korelacije ranga** (rho) jer:\n'
+       '- ne pretpostavlja normalnost\n'
+       '- robustan na ekstremne vrijednosti\n'
+       '- standardni alat u empirijskim financijama za slabe monotone veze\n\n'
+       'Kljucna razlika od Notebook 02: tamo smo gledali *trenutni* stres (je li sada kriza?).\n'
+       'Ovdje gledamo *predskazivanje* — mjera u periodu t predvidja volatilnost u periodu t+1.\n'),
+    COLAB,
+    code(LOAD),
+    md('## 1. Realizirana volatilnost po prozoru\n\n'
+       'Za svaki revizijski prozor izracunavamo anualiziranu standardnu devijaciju dnevnih log-prinosa.\n'
+       'Cilj prognoze je **vol_{t+1}** — volatilnost *sljedeceg* prozora.\n\n'
+       '$$\\sigma_t = \\text{std}(r_d,\\, d \\in [t_{start}, t_{end}]) \\times \\sqrt{252}$$\n'),
+    code(VOL_NEXT),
+    md('## 2. Spearmanov rho: koje mjere predvidjaju volatilnost?\n\n'
+       'Za svaku od 10 mjera racunamo Spearman korelaciju s **vol_next** (buducom volatilnoscu).\n\n'
+       '**Ocekivani smjerovi** (iz teorije i istrazivakog nalaza):\n'
+       '- M1, M2, M3, M6, M7: pozitivan rho (visi stres -> visa buduća volatilnost)\n'
+       '- M8, M9: negativan rho (visi hub = nizi stres -> niza volatilnost)\n'
+       '- M4, M5: pozitivan rho, ali **kondicionalno** (samo u stresnim prozorima)\n'),
+    code(SPEARMAN),
+    md('## 3. Scatter plotovi: mjera vs. buduća volatilnost\n\n'
+       'Svaka tocka = jedan revizijski prozor. **Crveno = krizni period**, plavo = mirno.\n'),
+    code(SCATTER),
+    md('## 4. Kondicionalna analiza: zasto M4 radi samo u stresnim periodima\n\n'
+       '**M4 (broj zajednica u NG-0.001)** je posebna mjera:\n'
+       '- Dostupna samo kada je NG-0.001 mreza neprazna (~30-40% prozora)\n'
+       '- Ovi "aktivni" prozori su upravo stresni periodi\n'
+       '- Mjera dakle vec po definiciji selektira stresne epizode\n\n'
+       'Usporedujemo: rho u **svim stresnim prozorima** vs. samo **kriznim** vs. samo **mirnim stresnim**.\n'),
+    code(COND),
+    md('---\n\n'
+       '## Zadaci za studente\n\n'
+       '**1.** Koja mjera ima najjaci (po apsolutnoj vrijednosti) Spearman rho s vol_next?\n'
+       '   Je li predznak u ocekivanom smjeru?\n\n'
+       '**2.** Ponovite analizu za **M8** (eigenvector centralnost).\n'
+       '   Ocekujete li pozitivan ili negativan rho? Zasto?\n\n'
+       '**3.** Dodajte **M6** (apsorcijski omjer) u kondicionalni scatter plot (Sekcija 4).\n'
+       '   M6 je uvijek dostupan (nije kondicionalan) — je li rho u ocekivanom smjeru?\n\n'
+       '**4.** (Napredno) Usporedite rho na **W90 prozorima** (sample_metrics_W90.csv)\n'
+       '   vs. revizijskim prozorima. Je li veza jaca na jednom skupu?\n'
+       '   Sto to govori o izboru vremenskog prozora za analizu?\n'),
+]
+
+path = OUT / "03_prognoziranje.ipynb"
+with open(path, "w", encoding="utf-8") as f:
+    json.dump(nb(cells_03), f, ensure_ascii=False, indent=1)
+print(f"Saved: {path}")
