@@ -353,11 +353,11 @@ print(f"\\nPrva mjera: {best_metric}, AUC = {auc:.3f}")"""),
 ]
 
 # ─────────────────────────────────────────────────────────────────────────────
-# NOTEBOOK 03 — Prognoziranje
+# NOTEBOOK 03 — Prognoziranje volatilnosti: Spearman pristup
 # ─────────────────────────────────────────────────────────────────────────────
 
 cells_03 = [
-    md("""# Notebook 03: Out-of-Sample Prognoziranje Volatilnosti
+    md("""# Notebook 03: Mrežne mjere kao prediktori volatilnosti
 
 **Projekt:** Financijske mreže na ZSE (CROBEX, 2004–2026)
 **Teme:** Out-of-sample evaluacija, GARCH(1,1), OLS expanding window, QLIKE gubitak, DM test
