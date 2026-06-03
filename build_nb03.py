@@ -352,6 +352,11 @@ cells_03 = [
        'Cilj prognoze je **vol_{t+1}** — volatilnost *sljedeceg* prozora.\n\n'
        '$$\\sigma_t = \\text{std}(r_d,\\, d \\in [t_{start}, t_{end}]) \\times \\sqrt{252}$$\n'),
     code(VOL_NEXT),
+    md('**Sto vidimo u tablici:** Svaki redak = jedan revizijski prozor.\n'
+       '`vol` = realizirana volatilnost tog prozora; `vol_next` = volatilnost *sljedeceg* prozora\n'
+       '(to je ono sto pokusavamo predvidjeti). Mrezne mjere (M1_LCC, M4_NCom...) su vrijednosti\n'
+       'iz tog istog prozora — koristimo ih kao prediktore za `vol_next`.\n\n'
+       '> M4_NCom je NaN u vecini prozora — to je ocekivano (mjera je kondicionalna).\n'),
     md('## 2. Spearmanov rho: koje mjere predvidjaju volatilnost?\n\n'
        'Za svaku od 10 mjera racunamo Spearman korelaciju s **vol_next** (buducom volatilnoscu).\n\n'
        '**Ocekivani smjerovi** (iz teorije i istrazivakog nalaza):\n'
@@ -359,9 +364,29 @@ cells_03 = [
        '- M8, M9: negativan rho (visi hub = nizi stres -> niza volatilnost)\n'
        '- M4, M5: pozitivan rho, ali **kondicionalno** (samo u stresnim prozorima)\n'),
     code(SPEARMAN),
+    md('**Kako citati tablicu:**\n\n'
+       '- `rho` = Spearmanov koeficijent korelacije ranga. Raspon [-1, +1].\n'
+       '  Pozitivan: visa mjera danas → visa volatilnost sutra. Negativan: obrnuto.\n'
+       '- `n` = broj prozora gdje mjera nije NaN. Za M4, M5, M8 ocekujemo mali n\n'
+       '  (~15-18) jer su kondicionalne mjere.\n'
+       '- `sig` = statisticka znacajnost: `**` p<0.01, `*` p<0.05, `.` p<0.10\n\n'
+       '**Sto ocekivati:**\n'
+       'Mjere poput M1 (LCC), M3 (stupanj) i M6 (apsorcijski omjer) trebale bi imati\n'
+       'pozitivan rho — veca gustoca NG mreze danas predvidja nestabilnost sutra.\n'
+       'M4 (broj zajednica) ima mali n ali snazno pozitivan rho — kljucni nalaz istrazivanja.\n'),
     md('## 3. Scatter plotovi: mjera vs. buduća volatilnost\n\n'
        'Svaka tocka = jedan revizijski prozor. **Crveno = krizni period**, plavo = mirno.\n'),
     code(SCATTER),
+    md('**Kako citati scatter plotove:**\n\n'
+       '- Svaka tocka = jedan revizijski prozor (2004-2025)\n'
+       '- Os x = vrijednost mrezne mjere na kraju tog prozora\n'
+       '- Os y = realizirana volatilnost CROBEX-a u *sljedecem* prozoru\n'
+       '- **Crvene tocke** = prozori ciji kraj pada u krizno razdoblje (GFC, EU dug, COVID)\n'
+       '- **Plave tocke** = mirni prozori\n\n'
+       'Pozitivan rho → oblak tocaka ide "gore desno" (vise mjere → vise vol_next).\n'
+       'Ako su crvene tocke grupirane gore desno → krize daju jaci signal.\n\n'
+       '> Napomena: M4 ima malo tocaka (kondicionalna mjera) — tocke koje vidite\n'
+       '> su samo stresni prozori gdje NG-0.001 nije bila prazna.\n'),
     md('## 4. Kondicionalna analiza: zasto M4 radi samo u stresnim periodima\n\n'
        '**M4 (broj zajednica u NG-0.001)** je posebna mjera:\n'
        '- Dostupna samo kada je NG-0.001 mreza neprazna (~30-40% prozora)\n'
@@ -369,6 +394,15 @@ cells_03 = [
        '- Mjera dakle vec po definiciji selektira stresne epizode\n\n'
        'Usporedujemo: rho u **svim stresnim prozorima** vs. samo **kriznim** vs. samo **mirnim stresnim**.\n'),
     code(COND),
+    md('**Kako citati output kondicionalne analize:**\n\n'
+       '- **Svi stresni prozori** = svi prozori gdje je M4 dostupan (NG-0.001 aktivna)\n'
+       '- **Samo krizni** = od tih stresnih, oni ciji kraj pada u GFC/EU dug/COVID\n'
+       '- **Samo mirni (stres)** = stresni prozori izvan definiranih kriza\n'
+       '  (moze biti malo ili nula ako stres po NG-0.001 uvijek pada u krize)\n\n'
+       'Visok rho u kriznim + dobar n → M4 je pouzdan signal u kriznim epizodama.\n'
+       'Ako je n za mirne stresne prozore mali (<5), taj rho treba uzeti s oprezom.\n\n'
+       '**Scatter plot:** Tocke su obojene je li prozor krizni ili mirni-stresni.\n'
+       'Ocekujemo pozitivan nagib — vise zajednica danas → veca volatilnost sutra.\n'),
     md('## 5. Out-of-sample (OOS) validacija: NET mreza vs. GARCH(1,1)\n\n'
        'Spearman rho je **in-sample** mjera — govori nam da korelacija postoji,\n'
        'ali ne provjerava prognoznu moc izvan uzorka.\n\n'
@@ -384,7 +418,24 @@ cells_03 = [
        '> *Napomena: GARCH fitting traje ~1-2 minute u Colabu.*\n'),
     code(OOS_GARCH),
     code(OOS_DM),
+    md('**Kako citati OOS tablicu:**\n\n'
+       '- `Mean QLIKE` = prosjecni gubitak modela kroz sve OOS prozore. **Nizi = bolji.**\n'
+       '- `DM stat` = Diebold-Mariano statistik (usporedba s GARCH).\n'
+       '  **Negativan** → NET ima nizi QLIKE → **NET je bolji od GARCH**.\n'
+       '  Pozitivan → NET je gori.\n'
+       '- `p` = p-vrijednost DM testa. Mali p (< 0.10) → razlika je statisticki znacajna.\n'
+       '- `Bolji od GARCH?`: `DA **` p<0.05; `DA .` p<0.10; `-` nema znacajne razlike\n\n'
+       '**Sto ocekivati:** U punom istrazivanju M1 (LCC) i M2 (APL) NET modeli\n'
+       'znacajno pobjeduju GARCH (p~0.002). Na kracem uzorku signal moze biti slabiji.\n'),
     code(OOS_PLOT),
+    md('**Kako citati OOS graf:**\n\n'
+       '- Svaka tocka = QLIKE gubitak za jedan OOS prozor (crna = GARCH, plava = NET M1, narancasta = NET M2)\n'
+       '- Periodi gdje su plava/narancasta **ispod crne** → NET je bolji od GARCH u tom prozoru\n'
+       '- Periodi gdje su iznad → GARCH je bolji\n'
+       '- Volatilni periodi (GFC ~2008-2009, COVID ~2020) cesto daju najvece gubitke svim modelima\n'
+       '- Ako NET dosljednije ostaje ispod crne crte → sustavno bolja prognoza\n\n'
+       '> Ukupna prognozna prednos mjeri se **prosjecnim** QLIKE i DM testom (tablica iznad),\n'
+       '> a ne samo jednim periodom.\n'),
     md('---\n\n'
        '## Zadaci za studente\n\n'
        '**1.** Koja mjera ima najjaci (po apsolutnoj vrijednosti) Spearman rho s vol_next?\n'
