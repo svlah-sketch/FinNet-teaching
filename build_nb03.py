@@ -210,6 +210,8 @@ COND = (
 OOS_GARCH = (
     '# OOS usporedba: NET (M1, M2) vs GARCH(1,1)\n'
     '# Expanding window: model se trenira samo na proslim podacima\n'
+    'import subprocess, sys\n'
+    'subprocess.run([sys.executable, "-m", "pip", "install", "-q", "arch"], check=True)\n'
     'import warnings\n'
     'from numpy.linalg import lstsq\n'
     'from arch import arch_model\n'
