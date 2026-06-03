@@ -20,7 +20,7 @@ sample_data/
   CROBEX_values.csv             — Dnevne razine CROBEX indeksa
   Revisions.csv                 — Datumi revizia CROBEX sastava
 student_projects/
-  README_projekti.md            — 3 studentska mini-projekta
+  README_projekti.md            — 3 mini-projekta za vježbu i isprobavanje
 requirements.txt
 ```
 
@@ -50,17 +50,9 @@ Notebooki koriste podatke iz `sample_data/` — mali CSV-ovi koji ne zahtijevaju
 pristup originalnim cache datotekama. Svaki notebook objašnjava strukturu podataka
 u prvoj ćeliji.
 
-## Kolegiji
+## Mini-projekti za vježbu
 
-| Notebook | Primjeren za |
-|----------|-------------|
-| 01 — Mreže i podaci | Financijsko modeliranje, Analiza podataka |
-| 02 — Detekcija kriza | Ekonometrija, Strojno učenje u financijama |
-| 03 — Prognoziranje | Strojno učenje, Financijsko modeliranje |
-
-## Studentski projekti
-
-Vidi `student_projects/README_projekti.md` za 3 mini-projekta u trajanju 1–2 tjedna.
+Vidi `student_projects/README_projekti.md` za 3 mini-projekta za samostalan rad (trajanje 1–2 tjedna).
 
 ---
 

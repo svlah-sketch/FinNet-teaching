@@ -1,7 +1,7 @@
-# Studentski mini-projekti
+# Mini-projekti za vježbu i isprobavanje
 
-Svaki projekt traje **1–2 tjedna** i oslanja se na notebookove i podatke iz mape
-`teaching/`. Polazište je uvijek gotov notebook — student ga proširuje ili modificira.
+Svaki projekt traje **1–2 tjedna** i oslanja se na notebookove i podatke iz ovog
+repozitorija. Polazište je uvijek gotov notebook — proširuješ ga ili modificiraš.
 
 ---
 
